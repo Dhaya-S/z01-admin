@@ -12,7 +12,7 @@ import { formatDate, formatPhone } from '@/lib/formatters';
 
 const STATUS_OPTIONS = ['all', 'pending', 'submitted', 'approved', 'rejected'];
 
-export default function VendorsPage() {
+export default function VendorsPage({ searchParams }: { searchParams?: any }) {
   const router = useRouter();
   const toast = useToast();
 
@@ -22,6 +22,15 @@ export default function VendorsPage() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
   const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    const status = searchParams?.status;
+    if (status && typeof status === 'string') {
+      setStatusFilter(status);
+    } else {
+      setStatusFilter('all');
+    }
+  }, [searchParams]);
 
   const [confirmModal, setConfirmModal] = useState<{
     open: boolean;
