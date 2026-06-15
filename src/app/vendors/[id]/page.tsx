@@ -57,6 +57,8 @@ export default function VendorDetailPage() {
   const [confirmModal, setConfirmModal] = useState<{ type: 'approve' | 'reject'; open: boolean } | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+  const [resolvedDocs, setResolvedDocs] = useState<Record<string, string>>({});
+  const [docsLoading, setDocsLoading] = useState(false);
 
   useEffect(() => {
     adminApi.getVendor(id)
@@ -64,6 +66,42 @@ export default function VendorDetailPage() {
       .catch(() => toast.error('Failed to load vendor'))
       .finally(() => setLoading(false));
   }, [id]);
+
+  // Resolve signed URLs for documents whenever vendor data or activeTab changes
+  useEffect(() => {
+    if (!vendor?.documents || activeTab !== 'documents') return;
+    const rawDocs: Record<string, string> = vendor.documents;
+    const keys = Object.entries(DOC_LABELS)
+      .map(([key]) => ({ key, val: rawDocs[key] }))
+      .filter(({ val }) => val && !val.startsWith('http'));
+
+    if (keys.length === 0) {
+      // All values are already full URLs (or empty) - use them directly
+      const direct: Record<string, string> = {};
+      Object.keys(DOC_LABELS).forEach(k => { if (rawDocs[k]) direct[k] = rawDocs[k]; });
+      setResolvedDocs(direct);
+      return;
+    }
+
+    setDocsLoading(true);
+    Promise.all(
+      Object.keys(DOC_LABELS).map(async (key) => {
+        const val = rawDocs[key];
+        if (!val) return [key, null];
+        if (val.startsWith('http')) return [key, val];
+        try {
+          const res = await adminApi.getDocUrl(val);
+          return [key, res.data.url];
+        } catch {
+          return [key, null];
+        }
+      })
+    ).then(entries => {
+      const map: Record<string, string> = {};
+      entries.forEach(([k, v]) => { if (v) map[k as string] = v as string; });
+      setResolvedDocs(map);
+    }).finally(() => setDocsLoading(false));
+  }, [vendor, activeTab]);
 
   const handleApprove = async () => {
     setActionLoading(true);
@@ -239,10 +277,12 @@ export default function VendorDetailPage() {
 
       {/* TAB 1 — Documents */}
       {activeTab === 'documents' && (
+        docsLoading ? (
+          <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading documents...</div>
+        ) : (
         <div className="docs-grid">
           {Object.entries(DOC_LABELS).map(([key, label]) => {
-            const val = docs[key];
-            const fileUrl = val ? getImageUrl(val) : null;
+            const fileUrl = resolvedDocs[key] || null;
             const pdf = fileUrl ? isPdf(fileUrl) : false;
             return (
               <div key={key} className="doc-card">
@@ -273,7 +313,7 @@ export default function VendorDetailPage() {
                         src={fileUrl}
                         alt={label}
                         className="doc-thumb"
-                        onClick={() => setLightbox({ images: [val], index: 0 })}
+                        onClick={() => setLightbox({ images: [fileUrl], index: 0 })}
                         onError={e => {
                           const target = e.target as HTMLImageElement;
                           target.style.display = 'none';
@@ -293,7 +333,7 @@ export default function VendorDetailPage() {
                       <span className="doc-label">{label}</span>
                       <button
                         className="btn btn-secondary btn-sm"
-                        onClick={() => pdf ? openFile(fileUrl) : setLightbox({ images: [val], index: 0 })}
+                        onClick={() => pdf ? openFile(fileUrl) : setLightbox({ images: [fileUrl], index: 0 })}
                       >
                         <ExternalLink size={12} /> {pdf ? 'Open PDF' : 'View'}
                       </button>
@@ -315,6 +355,7 @@ export default function VendorDetailPage() {
             );
           })}
         </div>
+        )
       )}
 
 

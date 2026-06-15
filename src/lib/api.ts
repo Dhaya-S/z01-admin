@@ -116,4 +116,7 @@ export const adminApi = {
   getBookingAnalytics: () => vendorApi.get('/admin/analytics/bookings'),
   getTopVendors: () => vendorApi.get('/admin/analytics/top-vendors'),
   getGrowthAnalytics: () => vendorApi.get('/admin/analytics/growth'),
+
+  // Get a signed (temporary) URL for a private document stored in R2
+  getDocUrl: (key: string) => vendorApi.get('/admin/doc-url', { params: { key } }),
 };
