@@ -112,6 +112,9 @@ export const adminApi = {
   getIssues: (params?: Record<string, any>) =>
     vendorApi.get('/admin/issues', { params }),
 
+  getListingReports: (params?: Record<string, any>) =>
+    vendorApi.get('/admin/listing-reports', { params }),
+
   getRevenueAnalytics: () => vendorApi.get('/admin/analytics/revenue'),
   getBookingAnalytics: () => vendorApi.get('/admin/analytics/bookings'),
   getTopVendors: () => vendorApi.get('/admin/analytics/top-vendors'),
