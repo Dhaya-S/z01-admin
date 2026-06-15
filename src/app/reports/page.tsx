@@ -52,12 +52,12 @@ export default function ReportsPage() {
   }, [listingPage]);
 
   useEffect(() => {
-    if (activeTab === 'bookings') {
-      fetchBookings();
-    } else {
-      fetchListings();
-    }
-  }, [activeTab, fetchBookings, fetchListings]);
+    fetchBookings();
+  }, [fetchBookings]);
+
+  useEffect(() => {
+    fetchListings();
+  }, [fetchListings]);
 
   // Columns for Booking Issues
   const bookingColumns = [
