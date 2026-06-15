@@ -34,6 +34,16 @@ const DOC_LABELS: Record<string, string> = {
   business_registration: 'Business Registration',
 };
 
+const isPdf = (url: string) => {
+  if (!url) return false;
+  return url.toLowerCase().endsWith('.pdf') || url.toLowerCase().includes('/pdf');
+};
+
+const openFile = (url: string) => {
+  window.open(url, '_blank', 'noopener,noreferrer');
+};
+
+
 export default function VendorDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -232,34 +242,60 @@ export default function VendorDetailPage() {
         <div className="docs-grid">
           {Object.entries(DOC_LABELS).map(([key, label]) => {
             const val = docs[key];
+            const fileUrl = val ? getImageUrl(val) : null;
+            const pdf = fileUrl ? isPdf(fileUrl) : false;
             return (
               <div key={key} className="doc-card">
-                {val ? (
+                {fileUrl ? (
                   <>
-                    <img
-                      src={getImageUrl(val)}
-                      alt={label}
-                      className="doc-thumb"
-                      onClick={() => setLightbox({ images: [val], index: 0 })}
-                      onError={e => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        const parent = target.parentElement;
-                        if (parent) {
-                          const div = document.createElement('div');
-                          div.className = 'doc-empty';
-                          div.innerHTML = `<span style="font-size:32px">📄</span><span>${label}</span>`;
-                          parent.insertBefore(div, target);
-                        }
-                      }}
-                    />
+                    {pdf ? (
+                      /* PDF thumbnail */
+                      <div
+                        className="doc-thumb"
+                        onClick={() => openFile(fileUrl)}
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 8,
+                          cursor: 'pointer',
+                          background: 'rgba(239,68,68,0.06)',
+                          border: '1px solid rgba(239,68,68,0.2)',
+                        }}
+                      >
+                        <span style={{ fontSize: 36 }}>📄</span>
+                        <span style={{ fontSize: 11, color: 'var(--danger)', fontWeight: 600 }}>PDF Document</span>
+                      </div>
+                    ) : (
+                      /* Image thumbnail */
+                      <img
+                        src={fileUrl}
+                        alt={label}
+                        className="doc-thumb"
+                        onClick={() => setLightbox({ images: [val], index: 0 })}
+                        onError={e => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const parent = target.parentElement;
+                          if (parent) {
+                            const div = document.createElement('div');
+                            div.className = 'doc-empty';
+                            div.style.cssText = 'height:130px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;background:rgba(239,68,68,0.06)';
+                            div.innerHTML = `<span style="font-size:32px">📄</span><span style="font-size:11px;color:#ef4444;font-weight:600">Click to view</span>`;
+                            div.onclick = () => openFile(fileUrl);
+                            parent.insertBefore(div, target.nextSibling);
+                          }
+                        }}
+                      />
+                    )}
                     <div className="doc-footer">
                       <span className="doc-label">{label}</span>
                       <button
                         className="btn btn-secondary btn-sm"
-                        onClick={() => setLightbox({ images: [val], index: 0 })}
+                        onClick={() => pdf ? openFile(fileUrl) : setLightbox({ images: [val], index: 0 })}
                       >
-                        <ExternalLink size={12} /> View
+                        <ExternalLink size={12} /> {pdf ? 'Open PDF' : 'View'}
                       </button>
                     </div>
                   </>
@@ -280,6 +316,7 @@ export default function VendorDetailPage() {
           })}
         </div>
       )}
+
 
       {/* TAB 2 — Bank Details */}
       {activeTab === 'bank' && (
